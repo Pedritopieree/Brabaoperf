@@ -1,44 +1,90 @@
 package com.pierre.gcperf
 
-import com.pierre.gcperf.core.HookLog
-import com.pierre.gcperf.core.ProfileDb
-import com.pierre.gcperf.hooks.*
-import de.robv.android.xposed.IXposedHookLoadPackage
-import de.robv.android.xposed.callbacks.XC_LoadPackage
+import android.util.Log
+import io.github.libxposed.api.XposedInterface
+import io.github.libxposed.api.XposedModule
+import io.github.libxposed.api.XposedModuleInterface
 
-class ModuleEntry : IXposedHookLoadPackage {
+class ModuleEntry(host: XposedInterface, param: XposedModuleInterface.ModuleLoadedParam) : XposedModule(host, param) {
+    private val TAG = "GCPerf"
 
-    companion object {
-        val GAMECENTER_PKGS = setOf(
-            "com.vivo.gamecenter",
-            "com.bbk.gamecenter",
-            "com.iqoo.gamecenter"
-        )
-    }
-
-    override fun handleLoadPackage(param: XC_LoadPackage.LoadPackageParam) {
+    override fun onPackageReady(param: XposedModuleInterface.PackageReadyParam) {
         val pkg = param.packageName
-        HookLog.d("GCPerf: loading in $pkg")
-
-        when {
-            pkg == "android" -> {
-                RrmDisplayHooks(param).install()
-                ThermalFpsHooks(param).install()
-                ThermalWatchHooks(param).install()
-                BenchmarkHooks(param).install()
-            }
-            pkg in GAMECENTER_PKGS -> {
-                GameCenterHooks(param).install()
-                VsrBackendHooks(param).install()
-                FpsOverlayHooks(param).install()
-            }
-            ProfileDb.isKnownGame(pkg) -> {
-                val profile = ProfileDb.get(pkg) ?: return
-                FrameHooks(param, profile).install()
-                NativeSrHooks(param, profile).install()
-                GeneralHooks(param).install()
-                HookLog.i("GCPerf: hooks installed for $pkg (${profile.tier}, ${profile.gameFps}fps)")
-            }
+        val cl = param.classLoader
+        
+        if (pkg != "com.vivo.gamecube" && pkg != "com.vivo.gameassistant" && pkg != "com.vivo.gamewatch") {
+            return
         }
+
+        Log.d(TAG, "Injetando hooks em $pkg")
+
+        // 1. Hook na classe v6.d (Banco de dados do GameCube)
+        try {
+            val v6d = cl.loadClass("com.vivo.gamecube.v6.d")
+            
+            v6d.declaredMethods.filter { it.name == "getInt" }.forEach { m ->
+                hook(m).intercept { chain ->
+                    val res = chain.proceed() as? Int ?: return@intercept chain.proceed()
+                    if (res == 0) {
+                        Log.d(TAG, "[v6.d] Forçando retorno de 0 para 1")
+                        1
+                    } else res
+                }
+            }
+            
+            v6d.declaredMethods.filter { it.name == "getString" }.forEach { m ->
+                hook(m).intercept { chain ->
+                    val res = chain.proceed() as? String
+                    if (res == null || res == "0" || res == "false") {
+                        Log.d(TAG, "[v6.d] Forçando String para '1'")
+                        "1"
+                    } else res
+                }
+            }
+        } catch (t: Throwable) {
+            Log.e(TAG, "v6.d não encontrada neste pacote", t)
+        }
+
+        // 2. Hook no i9.a (Controlador do Monster+)
+        try {
+            val i9a = cl.loadClass("com.vivo.gamecube.i9.a")
+            i9a.declaredMethods.filter { it.name == "a" }.forEach { m ->
+                hook(m).intercept { 
+                    Log.d(TAG, "[i9.a] Forçado true")
+                    true 
+                }
+            }
+        } catch (t: Throwable) {}
+
+        // 3. Hook na common.a do sistema
+        try {
+            val commonA = cl.loadClass("com.vivo.common.a")
+            commonA.declaredMethods.filter { it.name == "isFeatureSupport" }.forEach { m ->
+                hook(m).intercept { chain ->
+                    val feature = chain.getArg(0) as? String
+                    if (feature != null && feature.lowercase().contains("monster")) {
+                        Log.d(TAG, "[common.a] Forçado true pra: $feature")
+                        true
+                    } else chain.proceed()
+                }
+            }
+        } catch (t: Throwable) {}
+
+        // 4. Hook na UI (ModeShiftBar) pra forçar o botão a aparecer
+        try {
+            val modeShiftBar = cl.loadClass("com.vivo.gameassistant.homegui.sideslide.panels.performance.modeshift.ModeShiftBar")
+            modeShiftBar.declaredMethods.filter { it.name == "setVisibility" }.forEach { m ->
+                hook(m).intercept { chain ->
+                    val args = chain.args
+                    if (args != null && args.isNotEmpty()) {
+                        args[0] = 0 // Força VISIBLE (0)
+                    }
+                    Log.d(TAG, "[ModeShiftBar] setVisibility forçado para VISIBLE (0)")
+                    chain.proceed(args)
+                }
+            }
+        } catch (t: Throwable) {}
+        
+        Log.d(TAG, "Hooks injetados com sucesso!")
     }
 }
