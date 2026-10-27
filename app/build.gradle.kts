@@ -36,8 +36,11 @@ android {
 }
 
 dependencies {
-    // A PORRA DA API 102
+    // A PORRA DA API 102 PRO MODULE ENTRY
     compileOnly("io.github.libxposed:api:102.0.0")
+    
+    // A PORRA DA API ANTIGA PRA PASTA HOOKS COMPILAR
+    compileOnly("de.robv.android.xposed:api:82")
 
     // UI e Material
     implementation("com.google.android.material:material:1.11.0")
