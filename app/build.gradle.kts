@@ -1,27 +1,36 @@
 plugins {
     id("com.android.application")
-    id("org.jetbrains.kotlin.android")
-    id("org.jetbrains.kotlin.plugin.compose")
+    kotlin("android")
 }
 
 android {
-    namespace = "com.pierre.gcperf"
-    compileSdk = 36
+    namespace  = "com.build.gcunlock"
+    compileSdk = 34 // <--- MUDOU AQUI
     defaultConfig {
-        applicationId = "com.pierre.gcperf"
-        minSdk = 31
-        targetSdk = 36
-        versionCode = 1
-        versionName = "1.0.0"
+        applicationId = "com.build.gcunlock"
+        minSdk        = 31
+        targetSdk     = 34 // <--- MUDOU AQUI
+        versionCode   = 1
+        versionName   = "1.0.0"
     }
-    buildFeatures { compose = true }
+    buildTypes {
+        release {
+            isMinifyEnabled   = true
+            isShrinkResources = true
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+        }
+        debug {
+            isMinifyEnabled = false
+            applicationIdSuffix = ".debug"
+        }
+    }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
     kotlinOptions { jvmTarget = "17" }
     packaging {
-        resources { excludes += "/META-INF/**" }
+        resources.excludes += "/META-INF/{AL2.0,LGPL2.1}"
     }
 }
 
@@ -33,7 +42,6 @@ dependencies {
 }
 
 configurations.all {
-    // A PORRA DO FIX: Proíbe o Gradle de baixar os módulos JVM
     exclude(group = "androidx.datastore", module = "datastore-core-okio-jvm")
     exclude(group = "androidx.datastore", module = "datastore-preferences-core-jvm")
     exclude(group = "androidx.datastore", module = "datastore-core-jvm")
