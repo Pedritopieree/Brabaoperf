@@ -1,6 +1,5 @@
 package com.pierre.gcperf
 
-import android.content.SharedPreferences
 import android.util.Log
 import io.github.libxposed.api.XposedInterface
 import io.github.libxposed.api.XposedModule
@@ -8,7 +7,7 @@ import io.github.libxposed.api.XposedModuleInterface
 
 class ModuleEntry : XposedModule() {
     private val TAG = "GCPerf"
-    private var hooksApplied = false
+    private var isHooked = false
 
     override fun onPackageReady(param: XposedModuleInterface.PackageReadyParam) {
         val pkg = param.packageName
@@ -18,78 +17,81 @@ class ModuleEntry : XposedModule() {
             return
         }
 
-        if (hooksApplied) return
-        hooksApplied = true
+        if (isHooked) return
+        isHooked = true
         
-        Log.e(TAG, ">>> Iniciando Hooks em $pkg <<<")
+        Log.e(TAG, ">>> Cravando hooks no pacote $pkg <<<")
 
-        // 1. Força o SharedPreferences a aceitar TUDO que for Monster, Performance ou Game
-        try {
-            val spClass = cl.loadClass("android.app.SharedPreferencesImpl")
-            
-            spClass.declaredMethods.filter { it.name == "getBoolean" }.forEach { m ->
-                hook(m).intercept { chain ->
-                    val key = (chain.getArg(0) as? String)?.lowercase()
-                    if (key != null && (key.contains("monster") || key.contains("performance") || key.contains("game") || key.contains("touch") || key.contains("turbo"))) {
-                        val original = chain.proceed() as? Boolean ?: false
-                        if (!original) {
-                            Log.e(TAG, "[Prefs] Forçando TRUE: $key")
-                            return@intercept true
-                        }
-                    }
-                    chain.proceed()
-                }
-            }
-
-            spClass.declaredMethods.filter { it.name == "getInt" }.forEach { m ->
-                hook(m).intercept { chain ->
-                    val key = (chain.getArg(0) as? String)?.lowercase()
-                    if (key != null && (key.contains("monster") || key.contains("fps") || key.contains("level"))) {
-                        val original = chain.proceed() as? Int ?: 0
-                        if (original == 0) {
-                            Log.e(TAG, "[Prefs] Forçando INT: $key -> 1/144")
-                            return@intercept if (key.contains("fps")) 144 else 1
-                        }
-                    }
-                    chain.proceed()
-                }
-            }
-        } catch (t: Throwable) {
-            Log.e(TAG, "Erro Prefs: ${t.message}")
-        }
-
-        // 2. Hook na UI do ModeShiftBar (botão do Monster)
+        // 1. Força o ModeShiftBar (Botão do Monster) a ficar VISIBLE e retornar TRUE
         try {
             val modeShiftBar = cl.loadClass("com.vivo.gameassistant.homegui.sideslide.panels.performance.modeshift.ModeShiftBar")
-            // Força qualquer método que retorne boolean a ser true
+            
+            // Força qualquer método boolean a ser true
             modeShiftBar.declaredMethods.filter { it.returnType == Boolean::class.java }.forEach { m ->
                 hook(m).intercept { 
                     Log.e(TAG, "[UI] ModeShiftBar.${m.name} -> TRUE")
                     true 
                 }
             }
-            // Força qualquer setVisibility a ser VISIBLE
+            
+            // Força qualquer setVisibility a ser 0 (VISIBLE)
             modeShiftBar.declaredMethods.filter { it.name == "setVisibility" }.forEach { m ->
                 hook(m).intercept { chain ->
                     val args = chain.args
                     if (args != null && args.isNotEmpty()) {
-                        args[0] = 0 // VISIBLE
+                        args[0] = 0
+                        Log.e(TAG, "[UI] ModeShiftBar.setVisibility -> VISIBLE")
                         chain.proceed(args.toTypedArray())
                     } else chain.proceed()
                 }
             }
         } catch (t: Throwable) {
-            Log.e(TAG, "Erro UI: ${t.message}")
+            Log.e(TAG, "Falha ModeShiftBar: ${t.message}")
         }
 
-        // 3. Hook no ModeType para garantir que o Enum MONSTER_PLUS existe
+        // 2. Força o EdgeDockView (A barra lateral inteira)
+        try {
+            val edgeDock = cl.loadClass("com.vivo.gameassistant.homegui.sideslide.dock.view.EdgeDockView")
+            edgeDock.declaredMethods.filter { it.returnType == Boolean::class.java }.forEach { m ->
+                hook(m).intercept { 
+                    Log.e(TAG, "[UI] EdgeDockView.${m.name} -> TRUE")
+                    true 
+                }
+            }
+            edgeDock.declaredMethods.filter { it.name == "setVisibility" }.forEach { m ->
+                hook(m).intercept { chain ->
+                    val args = chain.args
+                    if (args != null && args.isNotEmpty()) {
+                        args[0] = 0
+                        chain.proceed(args.toTypedArray())
+                    } else chain.proceed()
+                }
+            }
+        } catch (t: Throwable) {}
+
+        // 3. Força o ModeType (Enum) a retornar a porra do MONSTER_PLUS se existir
         try {
             val modeType = cl.loadClass("com.vivo.gameassistant.homegui.sideslide.panels.performance.modeshift.ModeType")
             modeType.declaredMethods.filter { it.name == "values" }.forEach { m ->
                 hook(m).intercept { chain ->
                     val result = chain.proceed() as? Array<*>
                     if (result != null) {
-                        Log.e(TAG, "[Enum] ModeType tem ${result.size} itens: ${result.joinToString()}")
+                        Log.e(TAG, "[ENUM] ModeType tem ${result.size} itens")
+                    }
+                    chain.proceed()
+                }
+            }
+        } catch (t: Throwable) {}
+
+        // 4. Força o SharedPreferences a mentir
+        try {
+            val spClass = cl.loadClass("android.app.SharedPreferencesImpl")
+            spClass.declaredMethods.filter { it.name == "getBoolean" }.forEach { m ->
+                hook(m).intercept { chain ->
+                    val key = (chain.getArg(0) as? String)?.lowercase()
+                    if (key != null && (key.contains("monster") || key.contains("support") || key.contains("touch"))) {
+                        Log.e(TAG, "[Prefs] Forçado TRUE: $key")
+                        return@intercept true
                     }
                     chain.proceed()
                 }
