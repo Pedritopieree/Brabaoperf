@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.build.gcunlock"> <!-- Muda pra com.build.gcperf se o teu pacote for diferente -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" />
     <uses-permission android:name="android.permission.DUMP" />
@@ -25,12 +24,10 @@
             </intent-filter>
         </activity>
 
-        <!-- A PORRA DO LSPOSED AQUI -->
         <meta-data android:name="xposedmodule" android:value="true"/>
         <meta-data android:name="xposeddescription" android:value="GCPerf Unlocker"/>
         <meta-data android:name="xposedminversion" android:value="93"/>
 
-        <!-- O PROVIDER DA API 102 -->
         <provider
             android:name="io.github.libxposed.service.XposedProvider"
             android:authorities="${applicationId}.XposedProvider"
