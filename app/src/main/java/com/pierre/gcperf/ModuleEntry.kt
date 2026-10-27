@@ -5,7 +5,6 @@ import io.github.libxposed.api.XposedInterface
 import io.github.libxposed.api.XposedModule
 import io.github.libxposed.api.XposedModuleInterface
 
-// O CONSTRUTOR NÃO PRECISA DE ARGUMENTOS NA API 102
 class ModuleEntry : XposedModule() {
     private val TAG = "GCPerf"
 
@@ -79,10 +78,12 @@ class ModuleEntry : XposedModule() {
                     val args = chain.args
                     if (args != null && args.isNotEmpty()) {
                         args[0] = 0 // Força VISIBLE (0)
+                        Log.d(TAG, "[ModeShiftBar] setVisibility forçado para VISIBLE (0)")
+                        // A PORRA DO FIX AQUI: Tira o ? e passa o array direto
+                        chain.proceed(args.toTypedArray())
+                    } else {
+                        chain.proceed()
                     }
-                    Log.d(TAG, "[ModeShiftBar] setVisibility forçado para VISIBLE (0)")
-                    // CORREÇÃO DO TYPEMISMATCH: Passando array em vez de lista
-                    chain.proceed(args?.toTypedArray()) 
                 }
             }
         } catch (t: Throwable) {}
