@@ -7,10 +7,8 @@
     <application
         android:name=".ModuleApplication"
         android:label="GCPerf"
-        android:icon="@mipmap/ic_launcher"
         android:theme="@style/Theme.GCPerf"
         android:supportsRtl="true"
-        android:extractNativeLibs="false"
         android:allowBackup="false"
         android:directBootAware="true">
 
