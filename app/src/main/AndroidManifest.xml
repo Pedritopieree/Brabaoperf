@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.build.gcunlock"> <!-- Se o teu pacote for GCPerf, muda aqui -->
+    package="com.build.gcunlock"> <!-- Muda pra com.build.gcperf se o teu pacote for diferente -->
 
     <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" />
     <uses-permission android:name="android.permission.DUMP" />
@@ -11,9 +11,9 @@
         android:icon="@mipmap/ic_launcher"
         android:theme="@style/Theme.GCPerf"
         android:supportsRtl="true"
+        android:extractNativeLibs="false"
         android:allowBackup="false"
-        android:directBootAware="true"
-        android:extractNativeLibs="false">
+        android:directBootAware="true">
 
         <activity
             android:name=".ui.MainActivity"
