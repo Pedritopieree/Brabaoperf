@@ -1,4 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="Theme.GCPerf" parent="android:Theme.Material.NoTitleBar" />
+    <!-- Usando o tema nativo do Android que existe em qualquer versão -->
+    <style name="Theme.GCPerf" parent="android:style/Theme.DeviceDefault.NoActionBar">
+        <item name="android:windowBackground">@android:color/white</item>
+    </style>
 </resources>
