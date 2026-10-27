@@ -31,7 +31,7 @@ android {
         compose = true
     }
     composeOptions {
-        kotlinCompilerExtensionVersion = "1.5.1"
+        kotlinCompilerExtensionVersion = "1.5.8" // <--- A PORRA DO FIX AQUI
     }
 }
 
@@ -39,7 +39,7 @@ dependencies {
     // A PORRA DO XPOSED
     compileOnly("de.robv.android.xposed:api:82")
 
-    // UI e Material (AQUI TÁ O TEMA)
+    // UI e Material (O Tema)
     implementation("com.google.android.material:material:1.11.0")
     implementation("androidx.core:core-ktx:1.12.0")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.7.0")
