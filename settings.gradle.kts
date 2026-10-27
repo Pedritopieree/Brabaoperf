@@ -1,5 +1,3 @@
-rootProject.name = "GCPerf"
-include(":app")
 pluginManagement {
     repositories {
         google()
@@ -12,7 +10,7 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
-        maven { url = uri("https://api.xposed.info/") } // <--- A PORRA DO XPOSED AQUI
+        maven { url = uri("https://api.xposed.info/") }
     }
 }
 rootProject.name = "GCPerf"
