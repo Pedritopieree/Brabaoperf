@@ -29,14 +29,12 @@ dependencies {
     compileOnly("io.github.libxposed:api:102.0.0")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")
     implementation("androidx.core:core-ktx:1.13.1")
-    
-    // A PORRA DO FIX AQUI: Forçando a versão Android do DataStore
     implementation("androidx.datastore:datastore-preferences:1.1.1")
 }
 
-// Bloco para forçar o Gradle a não baixar a porra da versão JVM
 configurations.all {
-    resolutionStrategy {
-        force("androidx.datastore:datastore-preferences:1.1.1")
-    }
+    // A PORRA DO FIX: Proíbe o Gradle de baixar os módulos JVM
+    exclude(group = "androidx.datastore", module = "datastore-core-okio-jvm")
+    exclude(group = "androidx.datastore", module = "datastore-preferences-core-jvm")
+    exclude(group = "androidx.datastore", module = "datastore-core-jvm")
 }
