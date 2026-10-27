@@ -1,5 +1,6 @@
 package com.pierre.gcperf
 
+import android.content.SharedPreferences
 import android.util.Log
 import io.github.libxposed.api.XposedInterface
 import io.github.libxposed.api.XposedModule
@@ -11,83 +12,88 @@ class ModuleEntry : XposedModule() {
     override fun onPackageReady(param: XposedModuleInterface.PackageReadyParam) {
         val pkg = param.packageName
         val cl = param.classLoader
-        
-        if (pkg != "com.vivo.gamecube" && pkg != "com.vivo.gameassistant" && pkg != "com.vivo.gamewatch") {
+
+        // Log.e pra forçar a porra do log a aparecer na tela do LSPosed
+        Log.e(TAG, ">>> onPackageReady START: $pkg <<<")
+
+        if (pkg != "com.vivo.gamecube" && pkg != "com.vivo.gameassistant" && pkg != "com.vivo.gamewatch" && pkg != "com.android.settings") {
             return
         }
 
-        Log.d(TAG, "Injetando hooks em $pkg")
-
-        // 1. Hook na classe v6.d (Banco de dados do GameCube)
+        // 1. Força o SharedPreferences do GameCube a aceitar o Monster+ e Features
         try {
-            val v6d = cl.loadClass("com.vivo.gamecube.v6.d")
+            val spClass = cl.loadClass("android.app.SharedPreferencesImpl")
             
-            v6d.declaredMethods.filter { it.name == "getInt" }.forEach { m ->
+            spClass.declaredMethods.filter { it.name == "getBoolean" }.forEach { m ->
                 hook(m).intercept { chain ->
-                    val res = chain.proceed() as? Int ?: return@intercept chain.proceed()
-                    if (res == 0) {
-                        Log.d(TAG, "[v6.d] Forçando retorno de 0 para 1")
-                        1
-                    } else res
+                    val key = chain.getArg(0) as? String
+                    if (key != null && (key.contains("monster") || key.contains("support") || key.contains("touch"))) {
+                        Log.e(TAG, "[Prefs] Forçado TRUE pra: $key")
+                        return@intercept true
+                    }
+                    chain.proceed()
                 }
             }
-            
-            v6d.declaredMethods.filter { it.name == "getString" }.forEach { m ->
+
+            spClass.declaredMethods.filter { it.name == "getInt" }.forEach { m ->
                 hook(m).intercept { chain ->
-                    val res = chain.proceed() as? String
-                    if (res == null || res == "0" || res == "false") {
-                        Log.d(TAG, "[v6.d] Forçando String para '1'")
-                        "1"
-                    } else res
+                    val key = chain.getArg(0) as? String
+                    if (key != null && (key.contains("monster") || key.contains("touch") || key.contains("resolution") || key.contains("fps"))) {
+                        Log.e(TAG, "[Prefs] Forçado 1/100 pra: $key")
+                        return@intercept if (key.contains("fps")) 144 else 1
+                    }
+                    chain.proceed()
                 }
             }
         } catch (t: Throwable) {
-            Log.e(TAG, "v6.d não encontrada neste pacote", t)
+            Log.e(TAG, "Erro no Prefs: ${t.message}")
         }
 
-        // 2. Hook no i9.a (Controlador do Monster+)
+        // 2. Força o Settings Global/System a liberar o Monster
         try {
-            val i9a = cl.loadClass("com.vivo.gamecube.i9.a")
-            i9a.declaredMethods.filter { it.name == "a" }.forEach { m ->
-                hook(m).intercept { 
-                    Log.d(TAG, "[i9.a] Forçado true")
-                    true 
-                }
-            }
-        } catch (t: Throwable) {}
-
-        // 3. Hook na common.a do sistema
-        try {
-            val commonA = cl.loadClass("com.vivo.common.a")
-            commonA.declaredMethods.filter { it.name == "isFeatureSupport" }.forEach { m ->
+            val settingsClass = cl.loadClass("android.provider.Settings\$System")
+            settingsClass.declaredMethods.filter { it.name == "getInt" }.forEach { m ->
                 hook(m).intercept { chain ->
-                    val feature = chain.getArg(0) as? String
-                    if (feature != null && feature.lowercase().contains("monster")) {
-                        Log.d(TAG, "[common.a] Forçado true pra: $feature")
-                        true
-                    } else chain.proceed()
+                    val key = chain.getArg(1) as? String
+                    if (key != null && key.contains("monster")) {
+                        Log.e(TAG, "[Settings.System] Forçado 1 pra: $key")
+                        return@intercept 1
+                    }
+                    chain.proceed()
                 }
             }
         } catch (t: Throwable) {}
 
-        // 4. Hook na UI (ModeShiftBar) pra forçar o botão a aparecer
+        // 3. Hook na UI do ModeShiftBar (botão Monster na tela)
         try {
-            val modeShiftBar = cl.loadClass("com.vivo.gameassistant.homegui.sideslide.panels.performance.modeshift.ModeShiftBar")
-            modeShiftBar.declaredMethods.filter { it.name == "setVisibility" }.forEach { m ->
+            // Como o nome pode ter mudado, a gente procura qualquer coisa com "modeshift" ou "performance"
+            val classes = cl.loadClass("com.vivo.gameassistant.homegui.sideslide.panels.performance.modeshift.ModeShiftBar")
+            classes.declaredMethods.filter { it.name == "setVisibility" }.forEach { m ->
                 hook(m).intercept { chain ->
                     val args = chain.args
                     if (args != null && args.isNotEmpty()) {
-                        args[0] = 0 // Força VISIBLE (0)
-                        Log.d(TAG, "[ModeShiftBar] setVisibility forçado para VISIBLE (0)")
-                        // A PORRA DO FIX AQUI: Tira o ? e passa o array direto
+                        args[0] = 0 // Força VISIBLE
+                        Log.e(TAG, "[UI] ModeShiftBar VISIBLE FORÇADO")
                         chain.proceed(args.toTypedArray())
-                    } else {
-                        chain.proceed()
-                    }
+                    } else chain.proceed()
+                }
+            }
+        } catch (t: Throwable) {
+            Log.e(TAG, "ModeShiftBar não encontrada: ${t.message}")
+        }
+
+        // 4. Hook pra forçar o values() do ModeType
+        try {
+            val modeType = cl.loadClass("com.vivo.gameassistant.homegui.sideslide.panels.performance.modeshift.ModeType")
+            modeType.declaredMethods.filter { it.name == "values" }.forEach { m ->
+                hook(m).intercept { chain ->
+                    val result = chain.proceed() as Array<*>
+                    Log.e(TAG, "[Enum] ModeType values() interceptado. Tamanho: ${result.size}")
+                    chain.proceed()
                 }
             }
         } catch (t: Throwable) {}
-        
-        Log.d(TAG, "Hooks injetados com sucesso!")
+
+        Log.e(TAG, ">>> onPackageReady END: $pkg <<<")
     }
 }
