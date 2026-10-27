@@ -5,7 +5,8 @@ import io.github.libxposed.api.XposedInterface
 import io.github.libxposed.api.XposedModule
 import io.github.libxposed.api.XposedModuleInterface
 
-class ModuleEntry(host: XposedInterface, param: XposedModuleInterface.ModuleLoadedParam) : XposedModule(host, param) {
+// O CONSTRUTOR NÃO PRECISA DE ARGUMENTOS NA API 102
+class ModuleEntry : XposedModule() {
     private val TAG = "GCPerf"
 
     override fun onPackageReady(param: XposedModuleInterface.PackageReadyParam) {
@@ -80,7 +81,8 @@ class ModuleEntry(host: XposedInterface, param: XposedModuleInterface.ModuleLoad
                         args[0] = 0 // Força VISIBLE (0)
                     }
                     Log.d(TAG, "[ModeShiftBar] setVisibility forçado para VISIBLE (0)")
-                    chain.proceed(args)
+                    // CORREÇÃO DO TYPEMISMATCH: Passando array em vez de lista
+                    chain.proceed(args?.toTypedArray()) 
                 }
             }
         } catch (t: Throwable) {}
