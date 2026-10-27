@@ -1,11 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.build.gcunlock"> <!-- Se o teu pacote for GCPerf, muda aqui -->
+
+    <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" />
+    <uses-permission android:name="android.permission.DUMP" />
+
     <application
+        android:name=".ModuleApplication"
         android:label="GCPerf"
         android:icon="@mipmap/ic_launcher"
         android:theme="@style/Theme.GCPerf"
         android:supportsRtl="true"
+        android:allowBackup="false"
+        android:directBootAware="true"
         android:extractNativeLibs="false">
+
         <activity
             android:name=".ui.MainActivity"
             android:exported="true"
@@ -15,6 +24,18 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- A PORRA DO LSPOSED AQUI -->
+        <meta-data android:name="xposedmodule" android:value="true"/>
+        <meta-data android:name="xposeddescription" android:value="GCPerf Unlocker"/>
+        <meta-data android:name="xposedminversion" android:value="93"/>
+
+        <!-- O PROVIDER DA API 102 -->
+        <provider
+            android:name="io.github.libxposed.service.XposedProvider"
+            android:authorities="${applicationId}.XposedProvider"
+            android:exported="true"
+            android:grantUriPermissions="true" />
+
     </application>
-    <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" />
 </manifest>
