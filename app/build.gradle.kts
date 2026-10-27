@@ -31,12 +31,12 @@ android {
         compose = true
     }
     composeOptions {
-        kotlinCompilerExtensionVersion = "1.5.1" // Necessário pro Compose
+        kotlinCompilerExtensionVersion = "1.5.1"
     }
 }
 
 dependencies {
-    // A PORRA DO XPOSED CLÁSSICO
+    // Xposed Classico
     compileOnly("de.robv.android.xposed:api:82")
 
     // Compose e UI
@@ -50,7 +50,7 @@ dependencies {
     implementation("androidx.compose.material3:material3")
     implementation("androidx.compose.material:material-icons-extended")
 
-    // DataStore e Coroutines (Pro Config.kt)
+    // DataStore e Coroutines
     implementation("androidx.datastore:datastore-preferences:1.0.0")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
 }
