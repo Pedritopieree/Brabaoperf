@@ -1,8 +1,6 @@
 package com.pierre.gcperf
 
-import android.database.CursorWrapper
 import android.util.Log
-import io.github.libxposed.api.XposedInterface
 import io.github.libxposed.api.XposedModule
 import io.github.libxposed.api.XposedModuleInterface
 
@@ -29,7 +27,8 @@ class ModuleEntry : XposedModule() {
                 hook(m).intercept { chain ->
                     val result = chain.proceed() as? Int ?: 0
                     if (result == 0) {
-                        StackTraceElement[] stack = Thread.currentThread().stackTrace
+                        // AQUI A PORRA DO FIX: Sintaxe correta do Kotlin
+                        val stack = Thread.currentThread().stackTrace
                         for (e in stack) {
                             if (e.className.contains("v6.d") || e.className.contains("Database_Impl") || e.className.contains("super_resolution")) {
                                 Log.e(TAG, "[SQLite] Forçando getInt -> 1")
@@ -45,7 +44,7 @@ class ModuleEntry : XposedModule() {
             cursorClass.declaredMethods.filter { it.name == "getString" }.forEach { m ->
                 hook(m).intercept { chain ->
                     val result = chain.proceed() as? String
-                    StackTraceElement[] stack = Thread.currentThread().stackTrace
+                    val stack = Thread.currentThread().stackTrace
                     for (e in stack) {
                         if (e.className.contains("v6.d") || e.className.contains("Database_Impl")) {
                             if (result == null || result == "0" || result == "false") {
